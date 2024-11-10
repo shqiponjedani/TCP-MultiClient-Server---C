@@ -109,11 +109,6 @@ void *handle_client(void *arg) {
             send(newsockfd, "Mesazhi u pranua!", 21, 0);
         }
 
-        // Klientët me privilegje të plota të kenë kohë përgjigjeje më të shpejtë
-        if (!isAdmin) {
-            usleep(500000);
-        }
-
 
         // Dërgo një mesazh te klienti
         char *server_message = "Ky është një mesazh nga serveri.";
