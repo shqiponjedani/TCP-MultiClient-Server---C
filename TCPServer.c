@@ -122,10 +122,6 @@ void *handle_client(void *arg) {
                 }
                 close(fd);
             }
-        } else {
-
-        printf("Klienti %s: %s\n", client_ip, buffer);
-            send(newsockfd, "Kërkesa u pranua.", 21, 0);
         }
 
         // Vonimi për klientët
