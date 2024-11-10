@@ -14,7 +14,7 @@
 #include <sys/stat.h>
 #define MAX_CLIENTS 4
 int num_clients = 0;
-#define TIMEOUT_SECONDS 200
+#define TIMEOUT_SECONDS 5
 #define LOG_FILE "/home/shpati/CLionProjects/TCP-MultiClient-Server---C/log.txt"
 // Struktura për të kaluar argumente te thread
 struct thread_args {
@@ -122,6 +122,16 @@ void *handle_client(void *arg) {
                 }
                 close(fd);
             }
+        } else {
+
+            if (!isAdmin) {
+                usleep(500000); // 500 ms
+            }
+
+
+            printf("Klienti %s: %s\n", client_ip, buffer);
+            char *server_message = "Kërkesa u pranua.";
+            send(newsockfd, server_message, strlen(server_message) + 1, 0);
         }
 
         // Vonimi për klientët
