@@ -23,6 +23,7 @@ Mund të aktivizoni privilegjet e admin-it dhe të ekzekutoni komanda shell te s
 Komunikon me serverin duke dërguar dhe marrë mesazhe.
 
 Teknologjitë
+
 C: Për krijimin e aplikacioneve server dhe klient.
 
 Socket Programming: Komunikim ndërmjet serverit dhe klientit.
