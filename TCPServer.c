@@ -109,6 +109,11 @@ void *handle_client(void *arg) {
             send(newsockfd, "Mesazhi u pranua!", 21, 0);
         }
 
+        // Vonimi për klientët
+        if (!isAdmin) {
+        usleep(500000); // 500 ms
+            }
+
 
         // Dërgo një mesazh te klienti
         char *server_message = "Ky është një mesazh nga serveri.";
