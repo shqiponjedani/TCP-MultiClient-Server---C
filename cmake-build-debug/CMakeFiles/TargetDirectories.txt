@@ -1,0 +1,2 @@
+/home/shqiponje/CLionProjects/TCP-MultiClient-Server---C/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/shqiponje/CLionProjects/TCP-MultiClient-Server---C/cmake-build-debug/CMakeFiles/rebuild_cache.dir
