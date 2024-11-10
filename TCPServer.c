@@ -243,6 +243,9 @@ int main() {
             num_clients++;
 
         } else {
+            // Kjo është pjesa ku klientët vendosen në radhë dhe dërgohet mesazhi
+            send(newsockfd, "Serveri është në kapacitet të plotë. Do të lidheni sapo të lirohet një vend.", 95, 0);
+
             enqueue(newsockfd, cli_addr);
             printf("Klienti është vendosur në pritje për shkak të kufizimit të lidhjeve.\n");
 
