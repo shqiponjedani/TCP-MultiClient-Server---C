@@ -8,19 +8,45 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-
+#include <stdbool.h>
+#include <time.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #define MAX_CLIENTS 4
 int num_clients = 0;
-
+#define TIMEOUT_SECONDS 200
+#define LOG_FILE "/home/shqiponje/CLionProjects/TCP-MultiClient-Server---C/log.txt"
 // Struktura për të kaluar argumente te thread
 struct thread_args {
     int sockfd;
     struct sockaddr_in addr;
 };
+// Funksioni për të ekzekutuar komandën në shell
+void execute_command(int newsockfd, char *command) {
+    FILE *fp = popen(command, "r");
+    if (fp == NULL) {
+        perror("ERROR executing command");
+        return;
+    }
+
+    char buffer[1024];
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        send(newsockfd, buffer, strlen(buffer), 0);
+    }
+
+    pclose(fp);
+}
+
 
 
 // Funksioni që do të ekzekutohet nga çdo thread qe krijohet për menaxhimin e klientave
 void *handle_client(void *arg) {
+    // Hap skedarin e log-ut
+    FILE *logfile = fopen(LOG_FILE, "a");
+    if (logfile == NULL) {
+        perror("ERROR opening log file");
+        pthread_exit(NULL);
+    }
     struct thread_args *args = (struct thread_args *)arg;
     int newsockfd = args->sockfd;
     struct sockaddr_in cli_addr = args->addr;
@@ -31,6 +57,9 @@ void *handle_client(void *arg) {
     char client_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
     printf("Serveri u lidh me klientin %s\n", client_ip);
+    // Cakto nëse klienti është admin (fillimisht asnjë)
+    static bool admin_connected = false;
+    bool isAdmin = false;
 
     // Komunikimi i mesazheve, logimin @Shqiponja
     char buffer[256];
@@ -59,14 +88,34 @@ void *handle_client(void *arg) {
         if (bytes_received <= 0) {
             break;
         }
+        time_t now = time(NULL);
+        fprintf(logfile, "[%s] %s: %s\n", ctime(&now), client_ip, buffer);
+
+        if (strncmp(buffer, "admin enable", 12) == 0 && !admin_connected) {
+            isAdmin = true;
+            admin_connected = true;
+            printf("Klienti %s është tani admin.\n", client_ip);
+            send(newsockfd, "Privilegjet e admin-it u aktivizuan!", 37, 0);
+        } else if (strncmp(buffer, "execute", 7) == 0 && isAdmin) {
+            execute_command(newsockfd, buffer + 8); // Ekzekuto çdo komandë shell
+        } else if (strncmp(buffer, "exit", 4) == 0) {
+            if (isAdmin) {
+                admin_connected = false; // Rivendos admin_connected nëse admin shkëputet
+            }
+            break;
+        } else {
 
         printf("Klienti %s: %s\n", client_ip, buffer);
+            send(newsockfd, "Mesazhi u pranua!", 21, 0);
+        }
+
 
         // Dërgo një mesazh te klienti
         char *server_message = "Ky është një mesazh nga serveri.";
         send(newsockfd, server_message, strlen(server_message) + 1, 0);
     }
-
+    // Mbyllja e lidhjes
+    fclose(logfile);
     close(newsockfd);
     printf("Klienti %s disconnected.\n", client_ip);
     num_clients--;

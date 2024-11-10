@@ -148,7 +148,7 @@ CMAKE_PROJECT_DESCRIPTION:STATIC=
 CMAKE_PROJECT_HOMEPAGE_URL:STATIC=
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=Project
+CMAKE_PROJECT_NAME:STATIC=TCP-MultiClient-Server---C
 
 //Path to a program.
 CMAKE_RANLIB:FILEPATH=/usr/bin/ranlib
@@ -223,6 +223,15 @@ Project_IS_TOP_LEVEL:STATIC=ON
 
 //Value Computed by CMake
 Project_SOURCE_DIR:STATIC=/home/shqiponje/CLionProjects/TCP-MultiClient-Server---C
+
+//Value Computed by CMake
+TCP-MultiClient-Server---C_BINARY_DIR:STATIC=/home/shqiponje/CLionProjects/TCP-MultiClient-Server---C/cmake-build-debug
+
+//Value Computed by CMake
+TCP-MultiClient-Server---C_IS_TOP_LEVEL:STATIC=ON
+
+//Value Computed by CMake
+TCP-MultiClient-Server---C_SOURCE_DIR:STATIC=/home/shqiponje/CLionProjects/TCP-MultiClient-Server---C
 
 
 ########################
