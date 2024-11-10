@@ -20,6 +20,7 @@ int num_clients = 0;
 struct thread_args {
     int sockfd ;
     struct sockaddr_in addr;
+
 };
 // Funksioni për të ekzekutuar komandën në shell
 void execute_command(int newsockfd, char *command) {
