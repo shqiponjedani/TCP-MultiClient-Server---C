@@ -15,17 +15,20 @@
 #define MAX_CLIENTS 4
 int num_clients = 0;
 #define TIMEOUT_SECONDS 5
-#define LOG_FILE "/home/shpati/CLionProjects/TCP-MultiClient-Server---C/log.txt"
+#define MAX_WAIT_SECONDS 5
+#define LOG_FILE "/home/shqiponje/CLionProjects/TCP-MultiClient-Server---C/log.txt"
 // Struktura për të kaluar argumente te thread
 struct thread_args {
     int sockfd ;
     struct sockaddr_in addr;
 
 };
+
 // Strukturë për lidhjet në pritje
 struct queue_node {
     int sockfd;
     struct sockaddr_in addr;
+    time_t enqueue_time;
     struct queue_node *next;
 };
 
@@ -35,11 +38,14 @@ struct queue {
     pthread_mutex_t lock;
 } client_queue = {NULL, NULL, PTHREAD_MUTEX_INITIALIZER};
 
+void *handle_client(void *arg);
+
 // Funksion për shtimin e lidhjeve në radhë
 void enqueue(int sockfd, struct sockaddr_in addr) {
     struct queue_node *new_node = (struct queue_node *)malloc(sizeof(struct queue_node));
     new_node->sockfd = sockfd;
     new_node->addr = addr;
+    new_node->enqueue_time = time(NULL);
     new_node->next = NULL;
 
     pthread_mutex_lock(&client_queue.lock);
@@ -80,7 +86,51 @@ void execute_command(int newsockfd, char *command) {
 
     pclose(fp);
 }
+void connect_queued_clients() {
+    time_t current_time = time(NULL);
 
+    pthread_mutex_lock(&client_queue.lock);
+    while (num_clients < MAX_CLIENTS && client_queue.front != NULL) {
+        struct queue_node *queued_client = dequeue();
+
+        // Kontrollo nëse klienti ka qenë në pritje për shumë kohë
+        if (difftime(current_time, queued_client->enqueue_time) > MAX_WAIT_SECONDS) {
+            char *timeout_message = "Lidhja dështoi: pritja ishte tepër e gjatë.";
+            send(queued_client->sockfd, timeout_message, strlen(timeout_message) + 1, 0);
+            close(queued_client->sockfd);
+            free(queued_client);
+            continue;
+        }
+
+        char *queued_message = "Lidhja është liruar dhe do të lidheni tani.";
+        send(queued_client->sockfd, queued_message, strlen(queued_message) + 1, 0);
+
+        pthread_t thread_id;
+        struct thread_args *args = malloc(sizeof(struct thread_args));
+        args->sockfd = queued_client->sockfd;
+        args->addr = queued_client->addr;
+        pthread_create(&thread_id, NULL, handle_client, (void *)args);
+        pthread_detach(thread_id);
+        num_clients++;
+        free(queued_client);
+
+        // Mesazhi për klientin që është lidhur
+        char *connected_message = "Jeni lidhur me serverin pasi një klient është shkëputur.";
+        send(queued_client->sockfd, connected_message, strlen(connected_message) + 1, 0);
+
+        printf("Klienti është lidhur nga radhë pasi është liruar një vend.\n");
+    }
+
+    // Nëse nuk ka vend të lirë, dërgo mesazhe që të kujtojë klientët se janë ende në pritje
+    struct queue_node *current = client_queue.front;
+    while (current != NULL) {
+        char *waiting_message = "Ende në pritje, ju lutemi prisni ...";
+        send(current->sockfd, waiting_message, strlen(waiting_message) + 1, 0);
+        current = current->next;
+    }
+
+    pthread_mutex_unlock(&client_queue.lock);
+}
 
 
 // Funksioni që do të ekzekutohet nga çdo thread qe krijohet për menaxhimin e klientave
@@ -96,17 +146,17 @@ void *handle_client(void *arg) {
     struct sockaddr_in cli_addr = args->addr;
     free(args);
 
-
-
     char client_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
     printf("Serveri u lidh me klientin %s\n", client_ip);
+
     // Cakto nëse klienti është admin (fillimisht asnjë)
     static bool admin_connected = false;
     bool isAdmin = false;
 
     // Komunikimi i mesazheve, logimin @Shqiponja
     char buffer[256];
+
     while (1) {
         // Përdorim select() për të monitoruar aktivitetin e socket-it
         fd_set readfds;
@@ -127,7 +177,6 @@ void *handle_client(void *arg) {
             break; // Mbyll lidhjen për shkak të timeout-it
         }
 
-
         int bytes_received = recv(newsockfd, buffer, 255, 0);
         if (bytes_received <= 0) {
             break;
@@ -141,7 +190,7 @@ void *handle_client(void *arg) {
         if (strncmp(buffer, "admin enable", 12) == 0 && !admin_connected) {
             isAdmin = true;
             admin_connected = true;
-            printf("Klienti %s është tani admin.\n", client_ip);
+
             send(newsockfd, "Privilegjet e admin-it u aktivizuan!", 37, 0);
         } else if (strncmp(buffer, "execute", 7) == 0 && isAdmin) {
             execute_command(newsockfd, buffer + 8); // Ekzekuto çdo komandë shell
@@ -167,37 +216,34 @@ void *handle_client(void *arg) {
                 close(fd);
             }
         } else {
-
             if (!isAdmin) {
                 usleep(500000); // 500 ms
             }
-
 
             printf("Klienti %s: %s\n", client_ip, buffer);
             char *server_message = "Kërkesa u pranua.";
             send(newsockfd, server_message, strlen(server_message) + 1, 0);
         }
 
-        // Vonimi për klientët
-        if (!isAdmin) {
-        usleep(500000); // 500 ms
-            }
-
-
-        // Dërgo një mesazh te klienti
-        char *server_message = "Kërkesa u pranua.";
-        send(newsockfd, server_message, strlen(server_message) + 1, 0);
+        // Dërgo mesazhin që një vend është liruar për klientët që presin
+        if (num_clients < MAX_CLIENTS) {
+            char *queued_message = "Ti je lidhur pasi që është liruar një vend.\n";
+            send(newsockfd, queued_message, strlen(queued_message) + 1, 0);
+        }
     }
+
     // Mbyllja e lidhjes
     fclose(logfile);
     close(newsockfd);
     printf("Klienti %s disconnected.\n", client_ip);
     num_clients--;
+    connect_queued_clients();
+
     pthread_exit(NULL);
 }
 
-int main() {
 
+int main() {
     // 1. Deklarimi i variablave për portin dhe IP adresën
     int port = 3490;
     char *server_ip_address = "127.0.0.1";
@@ -217,8 +263,8 @@ int main() {
     listen(sockfd, MAX_CLIENTS);
 
     // 5. Dëgjimi për lidhje
-    int backlog = 5;
-    listen(sockfd, backlog);
+    // int backlog = 5;
+    // listen(sockfd, backlog);
 
     // 6. Server loop
     while (1) {
@@ -254,24 +300,12 @@ int main() {
         pthread_mutex_unlock(&client_queue.lock);
 
         // Kontrollo nëse ka vend të lirë dhe ka klientë në pritje
-        while (num_clients < MAX_CLIENTS) {
-            struct queue_node *queued_client = dequeue();
-            if (!queued_client) {
-                break;
-            }
+        connect_queued_clients();
 
-            pthread_t thread_id;
-            struct thread_args *args = malloc(sizeof(struct thread_args));
-            args->sockfd = queued_client->sockfd;
-            args->addr = queued_client->addr;
-            pthread_create(&thread_id, NULL, handle_client, (void *)args);
-            pthread_detach(thread_id);
-            num_clients++;
-            free(queued_client);
-        }
+
+
+
     }
-
     close(sockfd);
-
     return 0;
 }
