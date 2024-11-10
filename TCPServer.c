@@ -89,7 +89,9 @@ void *handle_client(void *arg) {
             break;
         }
         time_t now = time(NULL);
-        fprintf(logfile, "[%s] %s: %s\n", ctime(&now), client_ip, buffer);
+        char *time_str = ctime(&now);
+        time_str[strcspn(time_str, "\n")] = 0; // Remove the newline from ctime()
+        fprintf(logfile, "[%s] %s: %s\n", time_str, client_ip, buffer);
 
         if (strncmp(buffer, "admin enable", 12) == 0 && !admin_connected) {
             isAdmin = true;
