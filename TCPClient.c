@@ -27,6 +27,19 @@ int main(int
 
     connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
 
+
+    char buffer[256];
+    while (1) {
+        printf("client: "); 
+        fgets(buffer, 255, stdin); 
+
+        send(sockfd, buffer, strlen(buffer) + 1, 0); 
+
+        if (strcmp(buffer, "exit") == 0) { 
+            break;
+        }
+    }
+ 
     close(sockfd); 
     return 0;
 }
