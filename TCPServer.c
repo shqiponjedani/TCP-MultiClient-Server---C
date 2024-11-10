@@ -9,7 +9,8 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-
+#define MAX_CLIENTS 4
+int num_clients = 0;
 
 // Struktura për të kaluar argumente te thread
 struct thread_args {
@@ -31,9 +32,29 @@ void *handle_client(void *arg) {
     inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
     printf("Serveri u lidh me klientin %s\n", client_ip);
 
-    // Komunikimi dhe logimi i mesazheve
+    // Komunikimi i mesazheve, logimin @Shqiponja
     char buffer[256];
     while (1) {
+        // Përdorim select() për të monitoruar aktivitetin e socket-it
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(newsockfd, &readfds);
+
+        struct timeval timeout;
+        timeout.tv_sec = 200; // Timeout prej 200 sekondash
+        timeout.tv_usec = 0;
+
+        int activity = select(newsockfd + 1, &readfds, NULL, NULL, &timeout);
+        if (activity < 0) {
+            perror("ERROR");
+            break;
+        }
+        if (activity == 0) {
+            printf("Klienti %s u shkëput për shkak të timeout-it.\n", client_ip);
+            break; // Mbyll lidhjen për shkak të timeout-it
+        }
+
+
         int bytes_received = recv(newsockfd, buffer, 255, 0);
         if (bytes_received <= 0) {
             break;
@@ -48,6 +69,7 @@ void *handle_client(void *arg) {
 
     close(newsockfd);
     printf("Klienti %s disconnected.\n", client_ip);
+    num_clients--;
     pthread_exit(NULL);
 }
 
@@ -81,13 +103,19 @@ int main() {
         socklen_t clilen = sizeof(cli_addr);
         int newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 
-        // Krijimi thread
-        pthread_t thread_id;
-        struct thread_args *args = malloc(sizeof(struct thread_args));
-        args->sockfd = newsockfd;
-        args->addr = cli_addr;
-        pthread_create(&thread_id, NULL, handle_client, (void *)args);
-        pthread_detach(thread_id);
+        if (num_clients < MAX_CLIENTS) {
+            // Krijimi thread
+            pthread_t thread_id;
+            struct thread_args *args = malloc(sizeof(struct thread_args));
+            args->sockfd = newsockfd;
+            args->addr = cli_addr;
+            pthread_create(&thread_id, NULL, handle_client, (void *)args);
+            pthread_detach(thread_id);
+            num_clients++;
+        } else {
+            close(newsockfd);
+        printf("Serveri refuzoi lidhjen. Numri maksimal i klientëve është arritur.\n");
+    }
 
     }
 
