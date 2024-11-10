@@ -22,6 +22,49 @@ struct thread_args {
     struct sockaddr_in addr;
 
 };
+// Strukturë për lidhjet në pritje
+struct queue_node {
+    int sockfd;
+    struct sockaddr_in addr;
+    struct queue_node *next;
+};
+
+// Struktura e radhës
+struct queue {
+    struct queue_node *front, *rear;
+    pthread_mutex_t lock;
+} client_queue = {NULL, NULL, PTHREAD_MUTEX_INITIALIZER};
+
+// Funksion për shtimin e lidhjeve në radhë
+void enqueue(int sockfd, struct sockaddr_in addr) {
+    struct queue_node *new_node = (struct queue_node *)malloc(sizeof(struct queue_node));
+    new_node->sockfd = sockfd;
+    new_node->addr = addr;
+    new_node->next = NULL;
+
+    pthread_mutex_lock(&client_queue.lock);
+    if (client_queue.rear == NULL) {
+        client_queue.front = client_queue.rear = new_node;
+    } else {
+        client_queue.rear->next = new_node;
+        client_queue.rear = new_node;
+    }
+    pthread_mutex_unlock(&client_queue.lock);
+}
+
+// Funksion për heqjen e lidhjeve nga radhë
+struct queue_node *dequeue() {
+    pthread_mutex_lock(&client_queue.lock);
+    struct queue_node *temp = client_queue.front;
+    if (client_queue.front != NULL) {
+        client_queue.front = client_queue.front->next;
+        if (client_queue.front == NULL) {
+            client_queue.rear = NULL;
+        }
+    }
+    pthread_mutex_unlock(&client_queue.lock);
+    return temp;
+}
 // Funksioni për të ekzekutuar komandën në shell
 void execute_command(int newsockfd, char *command) {
     FILE *fp = popen(command, "r");
@@ -171,6 +214,7 @@ int main() {
 
     // 4. Lidhja e socket-it me adresën
     bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+    listen(sockfd, MAX_CLIENTS);
 
     // 5. Dëgjimi për lidhje
     int backlog = 5;
@@ -183,6 +227,11 @@ int main() {
         socklen_t clilen = sizeof(cli_addr);
         int newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 
+        if (newsockfd < 0) {
+            perror("ERROR duke pranuar lidhjen");
+            continue;
+        }
+        pthread_mutex_lock(&client_queue.lock);
         if (num_clients < MAX_CLIENTS) {
             // Krijimi thread
             pthread_t thread_id;
@@ -192,12 +241,34 @@ int main() {
             pthread_create(&thread_id, NULL, handle_client, (void *)args);
             pthread_detach(thread_id);
             num_clients++;
+
         } else {
-            close(newsockfd);
-        printf("Serveri refuzoi lidhjen. Numri maksimal i klientëve është arritur.\n");
+            enqueue(newsockfd, cli_addr);
+            printf("Klienti është vendosur në pritje për shkak të kufizimit të lidhjeve.\n");
+
+
+        }
+        pthread_mutex_unlock(&client_queue.lock);
+
+        // Kontrollo nëse ka vend të lirë dhe ka klientë në pritje
+        while (num_clients < MAX_CLIENTS) {
+            struct queue_node *queued_client = dequeue();
+            if (!queued_client) {
+                break;
+            }
+
+            pthread_t thread_id;
+            struct thread_args *args = malloc(sizeof(struct thread_args));
+            args->sockfd = queued_client->sockfd;
+            args->addr = queued_client->addr;
+            pthread_create(&thread_id, NULL, handle_client, (void *)args);
+            pthread_detach(thread_id);
+            num_clients++;
+            free(queued_client);
+        }
     }
 
-    }
+    close(sockfd);
 
     return 0;
 }

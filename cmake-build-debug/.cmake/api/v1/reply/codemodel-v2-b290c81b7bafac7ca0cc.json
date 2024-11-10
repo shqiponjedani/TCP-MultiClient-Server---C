@@ -1,0 +1,69 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.29"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "TCP-MultiClient-Server---C",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "TCPClient::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-TCPClient-Debug-34d428dd3533ac430006.json",
+					"name" : "TCPClient",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "TCPServer::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-TCPServer-Debug-c4ea58e3ff2a212a985c.json",
+					"name" : "TCPServer",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/shqiponje/CLionProjects/TCP-MultiClient-Server---C/cmake-build-debug",
+		"source" : "/home/shqiponje/CLionProjects/TCP-MultiClient-Server---C"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}
