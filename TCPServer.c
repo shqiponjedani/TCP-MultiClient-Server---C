@@ -7,11 +7,26 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 
+
+
+// Struktura për të kaluar argumente te thread
+struct thread_args {
+    int sockfd;
+    struct sockaddr_in addr;
+};
 
 
 // Funksioni që do të ekzekutohet nga çdo thread qe krijohet për menaxhimin e klientave
-void handle_client(int newsockfd, struct sockaddr_in cli_addr) {
+void *handle_client(void *arg) {
+    struct thread_args *args = (struct thread_args *)arg;
+    int newsockfd = args->sockfd;
+    struct sockaddr_in cli_addr = args->addr;
+    free(args);
+
+
+
     char client_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
     printf("Serveri u lidh me klientin %s\n", client_ip);
@@ -33,6 +48,7 @@ void handle_client(int newsockfd, struct sockaddr_in cli_addr) {
 
     close(newsockfd);
     printf("Klienti %s disconnected.\n", client_ip);
+    pthread_exit(NULL);
 }
 
 int main() {
@@ -65,7 +81,14 @@ int main() {
         socklen_t clilen = sizeof(cli_addr);
         int newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 
-        handle_client(newsockfd, cli_addr);
+        // Krijimi thread
+        pthread_t thread_id;
+        struct thread_args *args = malloc(sizeof(struct thread_args));
+        args->sockfd = newsockfd;
+        args->addr = cli_addr;
+        pthread_create(&thread_id, NULL, handle_client, (void *)args);
+        pthread_detach(thread_id);
+
     }
 
     return 0;
