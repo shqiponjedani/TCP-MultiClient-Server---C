@@ -15,7 +15,7 @@
 #define MAX_CLIENTS 4
 int num_clients = 0;
 #define TIMEOUT_SECONDS 200
-#define LOG_FILE "/home/shqiponje/CLionProjects/TCP-MultiClient-Server---C/log.txt"
+#define LOG_FILE "/home/shpati/CLionProjects/TCP-MultiClient-Server---C/log.txt"
 // Struktura për të kaluar argumente te thread
 struct thread_args {
     int sockfd;
@@ -88,9 +88,11 @@ void *handle_client(void *arg) {
         if (bytes_received <= 0) {
             break;
         }
-        time_t now = time(NULL);
 
-        fprintf(logfile, "[%s] %s: %s\n", ctime(&now), client_ip, buffer);
+        time_t now = time(NULL);
+        char *time_str = ctime(&now);
+        time_str[strcspn(time_str, "\n")] = 0; // Remove the newline from ctime()
+        fprintf(logfile, "[%s] %s: %s\n", time_str, client_ip, buffer);
 
         if (strncmp(buffer, "admin enable", 12) == 0 && !admin_connected) {
             isAdmin = true;
