@@ -125,7 +125,7 @@ void *handle_client(void *arg) {
         } else {
 
         printf("Klienti %s: %s\n", client_ip, buffer);
-            send(newsockfd, "Mesazhi u pranua!", 21, 0);
+            send(newsockfd, "Kërkesa u pranua.", 21, 0);
         }
 
         // Vonimi për klientët
@@ -135,7 +135,7 @@ void *handle_client(void *arg) {
 
 
         // Dërgo një mesazh te klienti
-        char *server_message = "Ky është një mesazh nga serveri.";
+        char *server_message = "Kërkesa u pranua.";
         send(newsockfd, server_message, strlen(server_message) + 1, 0);
     }
     // Mbyllja e lidhjes
