@@ -18,7 +18,7 @@ int num_clients = 0;
 #define LOG_FILE "/home/shpati/CLionProjects/TCP-MultiClient-Server---C/log.txt"
 // Struktura për të kaluar argumente te thread
 struct thread_args {
-    int sockfd;
+    int sockfd ;
     struct sockaddr_in addr;
 };
 // Funksioni për të ekzekutuar komandën në shell
