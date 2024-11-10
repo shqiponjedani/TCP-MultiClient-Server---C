@@ -33,6 +33,9 @@ int main(int
     while (1) {
         printf("client: "); 
         fgets(buffer, 255, stdin); 
+     
+       // Hiq newline nga fgets()
+        buffer[strcspn(buffer, "\n")] = 0; 
 
         send(sockfd, buffer, strlen(buffer) + 1, 0); 
 
