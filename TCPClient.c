@@ -39,6 +39,8 @@ int main(int
         if (strcmp(buffer, "exit") == 0) { 
             break;
         }
+     recv(sockfd, buffer, 255, 0); 
+        printf("Serveri: %s\n", buffer); 
     }
  
     close(sockfd); 
