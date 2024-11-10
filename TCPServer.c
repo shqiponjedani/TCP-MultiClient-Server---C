@@ -106,6 +106,22 @@ void *handle_client(void *arg) {
                 admin_connected = false; // Rivendos admin_connected nëse admin shkëputet
             }
             break;
+        } else if (strncmp(buffer, "read", 4) == 0) {
+            char *filename = buffer + 5;
+
+            int fd = open(filename, O_RDONLY);
+            if (fd == -1) {
+                perror("Gabim gjatë hapjes së skedarit");
+                send(newsockfd, "Gabim gjatë hapjes së skedarit.\n", 30, 0);
+            } else {
+                char file_content[1024];
+                ssize_t bytes_read;
+                while ((bytes_read = read(fd, file_content, sizeof(file_content) - 1)) > 0) {
+                    file_content[bytes_read] = '\0'; // Vendos null terminator në fund të stringut
+                    send(newsockfd, file_content, bytes_read, 0);
+                }
+                close(fd);
+            }
         } else {
 
         printf("Klienti %s: %s\n", client_ip, buffer);
